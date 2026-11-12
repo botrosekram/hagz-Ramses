@@ -21,7 +21,9 @@ ol.m{list-style:none;margin:14px 0 0;padding:0}ol.m li{position:relative;display
 ol.m li:not(:last-child)::before{content:"";position:absolute;right:13px;top:26px;bottom:-2px;width:5px;border-radius:3px;background:var(--line)}
 ol.m li.p:not(:last-child)::before{background:var(--go)}
 .dot{z-index:1;flex:none;width:28px;height:28px;border-radius:50%;background:#9AA9A4;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
-li.p .dot{background:var(--go)}li.c .dot{background:var(--amb);color:#0F2A2E;width:36px;height:36px;margin:-4px -4px 0;box-shadow:0 0 0 5px rgba(245,179,53,.35)}
+li.p .dot{background:var(--go)}li.c .dot{background:var(--go);color:#fff;width:36px;height:36px;margin:-4px -4px 0;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 4px rgba(27,154,108,.45)}50%{opacity:.35;box-shadow:0 0 0 12px rgba(27,154,108,0)}}
+@media(prefers-reduced-motion:reduce){li.c .dot{animation:none;box-shadow:0 0 0 5px rgba(27,154,108,.45)}}
 .nm{flex:1;display:flex;justify-content:space-between;gap:8px}li.c .nm b{font-size:18px}
 .chip{font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:1px 10px;white-space:nowrap;align-self:flex-start}
 .row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}.row:first-child{border-top:0}
@@ -73,6 +75,7 @@ let B=[],ST=[],T={status:'open',cur:-1,open_at:null,close_at:null},role=null,PW=
 try{const m=JSON.parse(localStorage.getItem('mine')||'{}');for(const k in m)if(m[k]&&typeof m[k]==='object'&&m[k].t)mine[k]=m[k];PW=sessionStorage.getItem('pw')||''}catch(e){}
 const saveMine=()=>{try{localStorage.setItem('mine',JSON.stringify(mine))}catch(e){}};
 const newToken=()=>{try{return crypto.randomUUID()}catch(e){return Array.from({length:4},()=>Math.random().toString(36).slice(2)).join('')+Date.now()}};
+const devId=()=>{try{let d=localStorage.getItem('dev');if(!d||d.length<16){d=newToken();localStorage.setItem('dev',d)}return d}catch(e){return newToken()}};
 const now=()=>Date.now()+off;
 const isOpen=()=>T.status==='open'&&!!T.open_at&&!!T.close_at&&now()>=Date.parse(T.open_at)&&now()<Date.parse(T.close_at);
 const fmtDT=iso=>new Date(iso).toLocaleString('ar-EG',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long',hour:'numeric',minute:'2-digit'});
@@ -118,8 +121,9 @@ async function load(){if(!sb)return;
 
 $('bk').onclick=async()=>{const n=$('nm').value.trim(),sv=$('st').value,dv=$('dr').value,drop=dv==='other'?$('dro').value.trim():dv;
  if(!isOpen())return toast('الحجز مقفول دلوقتي');
+ if(Object.keys(mine).length)return toast('تم الحجز مسبقًا من الموبايل ده. لو عايز تحجز تاني الغي حجزك الأول');
  if(n.length<2)return toast('اكتب اسمك الأول');if(!sv)return toast('اختار محطة الركوب');if(drop.length<2)return toast('اختار محطة النزول أو اكتبها');
- const tk=newToken();const r=await rpc('book',{p_name:n,p_stop:+sv,p_drop:drop,p_token:tk});if(!r)return;
+ const tk=newToken();const r=await rpc('book',{p_name:n,p_stop:+sv,p_drop:drop,p_token:tk,p_device:devId()});if(!r)return;
  mine[r.data]={t:tk,n:''};saveMine();$('nm').value='';$('dro').value='';const pos=B.findIndex(x=>x.id===r.data)+1;
  toast(pos<=CAP?`تم حجزك، رقمك ${pos}`:`الرحلة مكتملة، انت احتياطي رقم ${pos-CAP}`);render()};
 
